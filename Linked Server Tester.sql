@@ -1,7 +1,7 @@
 /*
 	Dan Pousson
 	LinkedServer Tester
-	Version 1.1
+	Version 2.0
 
 	*/
 
@@ -10,22 +10,22 @@ set nocount on;
 declare 
 
 /*******************************************/
-  @Print_Test_Code_Only bit = 0 --Turn on to Print the Linked Server test code instead of executing it.
+  @Print_Test_Code_Only bit = 0 -- Use = 1 to Turn on to Print the Linked Server test code instead of executing it.
 , @LinkedServerTimeOutValue varchar(2) = '2'
 /*******************************************/
 
-, @cursor_Name nvarchar(128), @Test_LinkedServer varchar(2000) , @Change_LinkedServer_Timeout varchar(500)
+, @cursor_Name nvarchar(128), @OrigLinkedServerTimeOutValue varchar(2) = 0, @Test_LinkedServer varchar(2000), @Change_LinkedServer_Timeout varchar(500)
 
-DECLARE GetDBName CURSOR FORWARD_ONLY FAST_FORWARD READ_ONLY FOR select name from sys.servers where server_id <> 0 and name <> 'repl_distributor';
+DECLARE GetDBName CURSOR FORWARD_ONLY FAST_FORWARD READ_ONLY FOR select name, connect_timeout from sys.servers where server_id <> 0 and name <> 'repl_distributor';
 
 OPEN GetDBName
-FETCH GetDBName INTO @cursor_Name
+FETCH GetDBName INTO @cursor_Name, @OrigLinkedServerTimeOutValue
  WHILE @@FETCH_STATUS = 0
  BEGIN
 
-	--Get LinkedServer Names
+	--Create Test command with current cursor LinkedServer Name
 	select @Test_LinkedServer = 'exec sp_testlinkedserver @servername =  N' + '''' + name + '''' + char(10) from sys.servers where server_id <> 0 and name = @cursor_Name;
-	--Get LinkedServer Timeout for current individual target
+	--Set Change Timeout command with current cursor LinkedServer Timeout
 	select @Change_LinkedServer_Timeout = 'EXEC master.dbo.sp_serveroption @server=' + '''' + @cursor_Name +'''' + ', @optname=N''connect timeout'', @optvalue=' + @LinkedServerTimeOutValue ;
 		
 		--Change LinkedServer Timeout Setting (Shorten the wait time for connectivity issues)
@@ -49,14 +49,14 @@ FETCH GetDBName INTO @cursor_Name
 
 	END CATCH
 
-	--Revert back LinkedServer Timeout Setting what is usually 0
-	select @Change_LinkedServer_Timeout = 'EXEC master.dbo.sp_serveroption @server=' + '''' + @cursor_Name +'''' + ', @optname=N''connect timeout'', @optvalue=N''0'' ';
+	--Revert back LinkedServer Timeout Setting. Default is zero
+	select @Change_LinkedServer_Timeout = 'EXEC master.dbo.sp_serveroption @server=' + '''' + @cursor_Name +'''' + ', @optname=N''connect timeout'', @optvalue=' + @OrigLinkedServerTimeOutValue ;
 	
 		execute (@Change_LinkedServer_Timeout)
 
 	set @cursor_Name = ''
 
-	FETCH NEXT FROM GetDBName INTO @cursor_Name
+	FETCH NEXT FROM GetDBName INTO @cursor_Name, @OrigLinkedServerTimeOutValue
  END
 
 CLOSE GetDBName
