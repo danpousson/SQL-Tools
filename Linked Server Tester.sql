@@ -1,7 +1,7 @@
 /*
 	Dan Pousson
 	LinkedServer Tester
-	Version 1.1
+	Version 1.2
 
 	*/
 
