@@ -6,7 +6,16 @@
 	*/
 
 set nocount on;
-declare @cursor_Name nvarchar(128),@Test_LinkedServer varchar(2000), @Change_LinkedServer_Timeout varchar(500), @LinkedServerTimeOutValue varchar(2) = '2'
+
+declare 
+
+/*******************************************/
+  @Print_Test_Code_Only bit = 0 --Turn on to Print the Linked Server test code instead of executing it.
+, @LinkedServerTimeOutValue varchar(2) = '2'
+/*******************************************/
+
+, @cursor_Name nvarchar(128), @Test_LinkedServer varchar(2000) , @Change_LinkedServer_Timeout varchar(500)
+
 DECLARE GetDBName CURSOR FORWARD_ONLY FAST_FORWARD READ_ONLY FOR select name from sys.servers where server_id <> 0 and name <> 'repl_distributor';
 
 OPEN GetDBName
@@ -15,7 +24,7 @@ FETCH GetDBName INTO @cursor_Name
  BEGIN
 
 	--Get LinkedServer Names
-	select @Test_LinkedServer = ' exec sp_testlinkedserver @servername =  N' + '''' + name + '''' + char(13)  + char(13) from sys.servers where server_id <> 0 and name = @cursor_Name;
+	select @Test_LinkedServer = 'exec sp_testlinkedserver @servername =  N' + '''' + name + '''' + char(10) from sys.servers where server_id <> 0 and name = @cursor_Name;
 	--Get LinkedServer Timeout for current individual target
 	select @Change_LinkedServer_Timeout = 'EXEC master.dbo.sp_serveroption @server=' + '''' + @cursor_Name +'''' + ', @optname=N''connect timeout'', @optvalue=' + @LinkedServerTimeOutValue ;
 		
@@ -26,7 +35,9 @@ FETCH GetDBName INTO @cursor_Name
 	declare @error varchar(2000)
 
 		--Test LinkedServer
-		execute (@Test_LinkedServer)
+		IF @Print_Test_Code_Only = 1  print (@Test_LinkedServer) + 'GO' 
+		ELSE execute (@Test_LinkedServer)
+
 		set @error = ERROR_MESSAGE()
 
 	END TRY
