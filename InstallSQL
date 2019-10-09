@@ -1,0 +1,27 @@
+    #$servers = 'xxx','xxx'
+    $install_credentail = Get-Credential domain\user
+    $svcAcc = Get-Credential coexist\msa-xxxxx$
+    $config_file = "\\coexist\dfs\DepartmentShares\IT\DataServices\DBATeam\SQLInstall\Configuration\ConfigurationFile_2017_SQL_Server.ini"
+    $install_media = "\\coexist\dfs\DepartmentShares\IT\General\Software\Microsoft\SQL 2017\EnterpriseCore"
+    #$config_file = "C:\SQLBuild\SQLBuild\ConfigurationFile_2017_SQLServer.ini"
+    #$install_media = "I:\EnterpriseCore"
+    $port = 1433
+    #$SaCredential = "sa" 
+    $cred = Get-Credential -UserName SA -Message "Enter SA Password Here"
+
+foreach($server in $servers) {
+
+    Install-DbaInstance `
+    -Version 2017 `
+    -SqlInstance $server `
+    -ConfigurationFile $config_file `
+    -EngineCredential $svcAcc `
+    -AgentCredential $svcAcc `
+    -Port $port `
+    -Path $install_media `
+    -Credential $install_credentail `
+    -SaCredential $cred `
+    -Confirm:$false `
+    -Verbose -ErrorAction Inquire
+
+}
