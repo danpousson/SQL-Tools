@@ -16,7 +16,7 @@ declare
 
 , @cursor_Name nvarchar(128), @OrigLinkedServerTimeOutValue varchar(2) = 0, @Test_LinkedServer varchar(2000), @Change_LinkedServer_Timeout varchar(500)
 
-DECLARE GetDBName CURSOR FORWARD_ONLY FAST_FORWARD READ_ONLY FOR select name, connect_timeout from sys.servers where server_id <> 0 and name <> 'repl_distributor';
+DECLARE GetDBName CURSOR FORWARD_ONLY FAST_FORWARD READ_ONLY FOR select name, connect_timeout from sys.servers where server_id <> 0 and name <> 'repl_distributor' and is_data_access_enabled = 1;
 
 OPEN GetDBName
 FETCH GetDBName INTO @cursor_Name, @OrigLinkedServerTimeOutValue
@@ -24,7 +24,7 @@ FETCH GetDBName INTO @cursor_Name, @OrigLinkedServerTimeOutValue
  BEGIN
 
 	--Create Test command with current cursor LinkedServer Name
-	select @Test_LinkedServer = 'exec sp_testlinkedserver @servername =  N' + '''' + name + '''' + char(10) from sys.servers where server_id <> 0 and name = @cursor_Name;
+	select @Test_LinkedServer = 'exec sp_testlinkedserver @servername =  N' + '''' + name + '''' + char(10) from sys.servers where name = @cursor_Name;
 	--Set Change Timeout command with current cursor LinkedServer Timeout
 	select @Change_LinkedServer_Timeout = 'EXEC master.dbo.sp_serveroption @server=' + '''' + @cursor_Name +'''' + ', @optname=N''connect timeout'', @optvalue=' + @LinkedServerTimeOutValue ;
 		
