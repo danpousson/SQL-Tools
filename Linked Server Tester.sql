@@ -1,7 +1,7 @@
 /*
 	Dan Pousson
 	LinkedServer Tester
-	Version 2.0
+	Version 3.0
 
 	*/
 
@@ -10,8 +10,9 @@ set nocount on;
 declare 
 
 /*******************************************/
-  @Print_Test_Code_Only bit = 0 -- Use = 1 to Turn on to Print the Linked Server test code instead of executing it.
+  @Print_Test_Code_Only bit = 0  -- Use = 1 to Turn on to Print the Linked Server test code instead of executing it.
 , @LinkedServerTimeOutValue varchar(2) = '2'
+, @admin_mode_on bit = 1  --Elevated permissions required. This changes each linked servres timeout setting to the selected timeout value to speed up waiting for failed connections to error out.
 /*******************************************/
 
 , @cursor_Name nvarchar(128), @OrigLinkedServerTimeOutValue varchar(2) = 0, @Test_LinkedServer varchar(2000), @Change_LinkedServer_Timeout varchar(500)
@@ -29,7 +30,10 @@ FETCH GetDBName INTO @cursor_Name, @OrigLinkedServerTimeOutValue
 	select @Change_LinkedServer_Timeout = 'EXEC master.dbo.sp_serveroption @server=' + '''' + @cursor_Name +'''' + ', @optname=N''connect timeout'', @optvalue=' + @LinkedServerTimeOutValue ;
 		
 		--Change LinkedServer Timeout Setting (Shorten the wait time for connectivity issues)
-		 execute (@Change_LinkedServer_Timeout)
+		if @admin_mode_on = 1
+		 BEGIN 
+			execute (@Change_LinkedServer_Timeout)
+		 END
 
 	BEGIN TRY
 	declare @error varchar(2000)
@@ -50,9 +54,11 @@ FETCH GetDBName INTO @cursor_Name, @OrigLinkedServerTimeOutValue
 	END CATCH
 
 	--Revert back LinkedServer Timeout Setting. Default is zero
-	select @Change_LinkedServer_Timeout = 'EXEC master.dbo.sp_serveroption @server=' + '''' + @cursor_Name +'''' + ', @optname=N''connect timeout'', @optvalue=' + @OrigLinkedServerTimeOutValue ;
-	
-		execute (@Change_LinkedServer_Timeout)
+	if @admin_mode_on = 1
+		 BEGIN 
+			select @Change_LinkedServer_Timeout = 'EXEC master.dbo.sp_serveroption @server=' + '''' + @cursor_Name +'''' + ', @optname=N''connect timeout'', @optvalue=' + @OrigLinkedServerTimeOutValue ;	
+			execute (@Change_LinkedServer_Timeout)
+		END
 
 	set @cursor_Name = ''
 
